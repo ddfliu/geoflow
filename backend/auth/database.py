@@ -10,31 +10,43 @@ from backend.auth.config import get_settings
 
 settings = get_settings()
 
-# MongoDB client - Atlas optimized
-client = motor.motor_asyncio.AsyncIOMotorClient(
-    settings.DATABASE_URL,
-    serverSelectionTimeoutMS=10000,
-    connectTimeoutMS=10000,
-    socketTimeoutMS=20000,
-    retryWrites=True,
-    authMechanism="DEFAULT",
-    authSource="admin",
-    w="majority",
-    maxPoolSize=50,
-)
-db = client.geoflow  # Explicit database name
-
-users_collection = db.users
-transactions_collection = db.transactions
+# Lazy initialization
+client = None
+db = None
+users_collection = None
+transactions_collection = None
 
 db_available = False
 
 
 async def init_db():
     """Test connection with retry, then initialize indexes."""
-    global db_available
-    max_retries = 3
+    global client, db, users_collection, transactions_collection, db_available
+    max_retries = 2
     ping_success = False
+    
+    # Initialize client lazily
+    try:
+        if client is None:
+            print("Initializing MongoDB client...")
+            client = motor.motor_asyncio.AsyncIOMotorClient(
+                settings.DATABASE_URL,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=10000,
+                retryWrites=True,
+                authMechanism="DEFAULT",
+                authSource="admin",
+                w="majority",
+                maxPoolSize=10,
+            )
+            db = client.geoflow
+            users_collection = db.users
+            transactions_collection = db.transactions
+    except Exception as init_error:
+        print(f"Failed to initialize MongoDB client: {init_error}")
+        return
+    
     for attempt in range(1, max_retries + 1):
         try:
             print(f"MongoDB init attempt {attempt}/{max_retries}...")
@@ -45,7 +57,8 @@ async def init_db():
         except Exception as ping_error:
             print(f"Ping failed (attempt {attempt}): {ping_error}")
             if attempt == max_retries:
-                raise
+                print("MongoDB not available, running in limited mode.")
+                break
             await asyncio.sleep(2 ** attempt)
     if ping_success:
         try:
