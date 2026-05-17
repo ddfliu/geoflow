@@ -34,7 +34,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
 # Initialize MongoDB indexes on startup
 @router.on_event("startup")
 async def startup():
-    await init_db()
+    import asyncio
+    try:
+        await asyncio.wait_for(init_db(), timeout=15.0)
+    except asyncio.TimeoutError:
+        print("MongoDB init timed out, continuing without DB.")
 
 
 @router.get("/providers", response_model=dict)
