@@ -3,7 +3,8 @@ OAuth Configuration for multi-platform authentication.
 
 Environment Variables Required:
 - JWT_SECRET_KEY: Secret key for JWT token signing
-- DATABASE_URL: Database connection URL (default: sqlite:///./geoflow.db)
+- SUPABASE_URL: Supabase project URL
+- SUPABASE_KEY: Supabase service role or anon key
 
 OAuth Provider Credentials:
 - GitHub: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
@@ -25,8 +26,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30 * 24 * 60  # 30 days
     
-    # Database - Loads from .env first, falls back to local dev
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "mongodb://localhost:27017/geoflow")
+    # Supabase Database Settings
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
     
     # OAuth Providers - GitHub
     GITHUB_CLIENT_ID: str = "demo-github"

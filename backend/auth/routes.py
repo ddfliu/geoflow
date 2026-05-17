@@ -31,14 +31,14 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
 
 
-# Initialize MongoDB indexes on startup
+# Initialize Supabase on startup
 @router.on_event("startup")
 async def startup():
     import asyncio
     try:
         await asyncio.wait_for(init_db(), timeout=15.0)
     except asyncio.TimeoutError:
-        print("MongoDB init timed out, continuing without DB.")
+        print("Supabase init timed out, continuing without DB.")
 
 
 @router.get("/providers", response_model=dict)
@@ -274,9 +274,12 @@ async def get_history(limit: int = Query(50), token: str = Depends(oauth2_scheme
 @router.get("/db/health")
 async def db_health():
     """DB connection health check."""
+    db_url = settings.SUPABASE_URL if settings.SUPABASE_URL else 'N/A'
+    if db_url != 'N/A' and len(db_url) > 40:
+        db_url = db_url[:20] + '...'
     return {
         "db_available": db_available,
-        "database_url": settings.DATABASE_URL.replace(settings.JWT_SECRET_KEY[:4] + '...', '***HIDDEN***') if 'mongodb' in settings.DATABASE_URL else 'N/A',
+        "database_url": db_url,
         "status": "healthy" if db_available else "limited"
     }
 
