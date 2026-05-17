@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30 * 24 * 60  # 30 days
     
     # Supabase Database Settings
-    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
-    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
     
     # OAuth Providers - GitHub
     GITHUB_CLIENT_ID: str = "demo-github"
@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Allow extra vars in env for backward compatibility
 
 
 @lru_cache()
