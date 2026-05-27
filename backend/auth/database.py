@@ -123,6 +123,14 @@ async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
         
         if user:
             user["id"] = str(user.get("id"))
+            # Ensure all required fields exist
+            user.setdefault("is_active", True)
+            user.setdefault("is_superuser", False)
+            user.setdefault("created_at", datetime.utcnow().isoformat())
+            user.setdefault("updated_at", datetime.utcnow().isoformat())
+            user.setdefault("full_name", None)
+            user.setdefault("avatar_url", None)
+            user.setdefault("provider", None)
             return user
         return None
         
@@ -150,6 +158,13 @@ async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         
         if user:
             user["id"] = str(user.get("id"))
+            user.setdefault("is_active", True)
+            user.setdefault("is_superuser", False)
+            user.setdefault("created_at", datetime.utcnow().isoformat())
+            user.setdefault("updated_at", datetime.utcnow().isoformat())
+            user.setdefault("full_name", None)
+            user.setdefault("avatar_url", None)
+            user.setdefault("provider", None)
             return user
         return None
         
@@ -177,6 +192,13 @@ async def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
         
         if user:
             user["id"] = str(user.get("id"))
+            user.setdefault("is_active", True)
+            user.setdefault("is_superuser", False)
+            user.setdefault("created_at", datetime.utcnow().isoformat())
+            user.setdefault("updated_at", datetime.utcnow().isoformat())
+            user.setdefault("full_name", None)
+            user.setdefault("avatar_url", None)
+            user.setdefault("provider", None)
             return user
         return None
         
