@@ -6,7 +6,10 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
-const API_BASE = '' // Use vite proxy /api -> localhost:8000
+// Use environment variable for API base URL
+// In development: uses vite proxy (empty string)
+// In production: uses VITE_API_URL environment variable
+const API_BASE = import.meta.env.VITE_API_URL || ''
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({

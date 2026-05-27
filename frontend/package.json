@@ -6,25 +6,24 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
-
+    "preview": "vite preview",
+    "build:netlify": "npm install && vite build"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.1.0",
-    "axios": "^1.6.0",
-    "monaco-editor": "^0.45.0",
-    "pinia": "^2.1.7",
-    "vue": "^3.4.0",
-    "vue-router": "^4.2.5"
+    "@fortawesome/fontawesome-free": "7.1.0",
+    "axios": "1.6.0",
+    "monaco-editor": "0.45.0",
+    "pinia": "2.1.7",
+    "vue": "3.4.0",
+    "vue-router": "4.2.5"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.1",
-    "@vitejs/plugin-vue": "^5.2.4",
-    "autoprefixer": "^10.4.27",
-    "bun": "^1.0.0",
-    "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.1",
-    "vite": "^7.3.1"
+    "@tailwindcss/vite": "4.2.1",
+    "@vitejs/plugin-vue": "5.0.4",
+    "autoprefixer": "10.4.27",
+    "postcss": "8.5.8",
+    "tailwindcss": "4.2.1",
+    "vite": "8.0.14"
   },
   "keywords": [
     "geoflow",
