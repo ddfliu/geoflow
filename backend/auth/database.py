@@ -1,5 +1,5 @@
 """
-Supabase Database Configuration using Supabase Python SDK.
+Database Configuration using Supabase Python SDK with demo fallback.
 Compatible with FastAPI async endpoints.
 """
 
@@ -7,10 +7,45 @@ import asyncio
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from backend.auth.config import get_settings
+from backend.auth.models import pwd_context
 
 # Lazy initialization
 db_client = None
 db_available = False
+
+# Demo users for when database is not available
+DEMO_USERS = {
+    "demo": {
+        "id": "demo-user-1",
+        "username": "demo",
+        "email": "demo@example.com",
+        "hashed_password": pwd_context.hash("demo123"),
+        "points": 1000.0,
+        "is_active": True,
+        "is_superuser": False,
+        "created_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat()
+    },
+    "test": {
+        "id": "demo-user-2",
+        "username": "test",
+        "email": "test@example.com",
+        "hashed_password": pwd_context.hash("test123"),
+        "points": 500.0,
+        "is_active": True,
+        "is_superuser": False,
+        "created_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat()
+    }
+}
+
+# Demo transactions for demo users
+DEMO_TRANSACTIONS = {
+    "demo-user-1": [
+        {"id": "tx-1", "user_id": "demo-user-1", "quantity": 100, "price": 0.12, "total_price": 12.0, "fee": 0.12, "type": "buy", "created_at": "2024-01-15T10:30:00"},
+        {"id": "tx-2", "user_id": "demo-user-1", "quantity": 50, "price": 0.15, "total_price": 7.5, "fee": 0.075, "type": "sell", "created_at": "2024-01-16T14:20:00"}
+    ]
+}
 
 
 def get_supabase_client():
@@ -63,22 +98,30 @@ async def init_db():
                 await asyncio.sleep(2 ** attempt)
     
     db_available = False
-    print("Supabase not available, running in limited mode.")
+    print("Supabase not available, running in DEMO mode with mock users.")
     return False
+
+
+def is_demo_mode():
+    """Check if running in demo mode (no database)."""
+    return not db_available
 
 
 async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
     """Get user by username."""
+    # Demo mode fallback
+    if not db_available:
+        return DEMO_USERS.get(username)
+    
     try:
         client = get_supabase_client()
-        if not client or not db_available:
+        if not client:
             return None
         
         response = client.table("users").select("*").eq("username", username).maybe_single().execute()
         user = response.data
         
         if user:
-            # Convert UUID id to string for consistency
             user["id"] = str(user.get("id"))
             return user
         return None
@@ -90,9 +133,16 @@ async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
 
 async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     """Get user by email."""
+    # Demo mode fallback
+    if not db_available:
+        for user in DEMO_USERS.values():
+            if user.get("email") == email:
+                return user
+        return None
+    
     try:
         client = get_supabase_client()
-        if not client or not db_available:
+        if not client:
             return None
         
         response = client.table("users").select("*").eq("email", email).maybe_single().execute()
@@ -110,9 +160,16 @@ async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
 
 async def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
     """Get user by ID (UUID)."""
+    # Demo mode fallback
+    if not db_available:
+        for user in DEMO_USERS.values():
+            if user.get("id") == user_id:
+                return user
+        return None
+    
     try:
         client = get_supabase_client()
-        if not client or not db_available:
+        if not client:
             return None
         
         response = client.table("users").select("*").eq("id", user_id).maybe_single().execute()
@@ -130,16 +187,33 @@ async def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
 
 async def create_user(user_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Create new user."""
+    # Demo mode fallback - create in memory
+    if not db_available:
+        username = user_data.get("username")
+        if username in DEMO_USERS:
+            return None
+        new_user = {
+            "id": f"demo-user-{len(DEMO_USERS) + 1}",
+            "username": username,
+            "email": user_data.get("email"),
+            "hashed_password": user_data.get("hashed_password"),
+            "points": user_data.get("points", 1000.0),
+            "is_active": True,
+            "is_superuser": False,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        DEMO_USERS[username] = new_user
+        return new_user
+    
     try:
         client = get_supabase_client()
-        if not client or not db_available:
+        if not client:
             return None
         
-        # Ensure points are set
         if "points" not in user_data:
             user_data["points"] = 1000.0
         
-        # Set created timestamp
         user_data["created_at"] = datetime.utcnow().isoformat()
         
         response = client.table("users").insert(user_data).execute()
@@ -157,9 +231,17 @@ async def create_user(user_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 async def update_user(user_id: str, update_data: Dict[str, Any]) -> bool:
     """Update existing user."""
+    # Demo mode fallback
+    if not db_available:
+        for user in DEMO_USERS.values():
+            if user.get("id") == user_id:
+                user.update(update_data)
+                return True
+        return False
+    
     try:
         client = get_supabase_client()
-        if not client or not db_available:
+        if not client:
             return False
         
         response = client.table("users").update(update_data).eq("id", user_id).execute()
@@ -185,12 +267,19 @@ async def get_points_balance(user_id: str) -> float:
 
 async def update_points(user_id: str, delta: float) -> bool:
     """Update user's points by delta."""
+    # Demo mode fallback
+    if not db_available:
+        for user in DEMO_USERS.values():
+            if user.get("id") == user_id:
+                user["points"] = float(user.get("points", 0.0)) + delta
+                return True
+        return False
+    
     try:
         client = get_supabase_client()
-        if not client or not db_available:
+        if not client:
             return False
         
-        # Get current points
         user = await get_user_by_id(user_id)
         if not user:
             return False
@@ -198,7 +287,6 @@ async def update_points(user_id: str, delta: float) -> bool:
         current_points = float(user.get("points", 0.0))
         new_points = current_points + delta
         
-        # Update
         response = client.table("users").update({"points": new_points}).eq("id", user_id).execute()
         return len(response.data) > 0
         
@@ -209,12 +297,21 @@ async def update_points(user_id: str, delta: float) -> bool:
 
 async def create_transaction(tx_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Create a transaction record."""
+    # Demo mode fallback
+    if not db_available:
+        tx_data["id"] = f"tx-{len(DEMO_TRANSACTIONS.get(tx_data.get('user_id'), [])) + 1}"
+        tx_data["created_at"] = datetime.utcnow().isoformat()
+        user_id = tx_data.get("user_id")
+        if user_id not in DEMO_TRANSACTIONS:
+            DEMO_TRANSACTIONS[user_id] = []
+        DEMO_TRANSACTIONS[user_id].insert(0, tx_data)
+        return tx_data
+    
     try:
         client = get_supabase_client()
-        if not client or not db_available:
+        if not client:
             return None
         
-        # Set created timestamp
         tx_data["created_at"] = datetime.utcnow().isoformat()
         
         response = client.table("transactions").insert(tx_data).execute()
@@ -232,9 +329,13 @@ async def create_transaction(tx_data: Dict[str, Any]) -> Optional[Dict[str, Any]
 
 async def get_user_transactions(user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
     """Get user's transaction history."""
+    # Demo mode fallback
+    if not db_available:
+        return DEMO_TRANSACTIONS.get(user_id, [])[:limit]
+    
     try:
         client = get_supabase_client()
-        if not client or not db_available:
+        if not client:
             return []
         
         response = client.table("transactions").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(limit).execute()
